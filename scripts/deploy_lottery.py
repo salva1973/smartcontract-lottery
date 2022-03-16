@@ -1,5 +1,6 @@
-from scripts.helpful_scripts import get_account, get_contract
+from scripts.helpful_scripts import get_account, get_contract, fund_with_link
 from brownie import Lottery, network, config
+
 
 def deploy_lottery():
   # account = get_account(id="freecodecamp-account")
@@ -15,12 +16,14 @@ def deploy_lottery():
   )
   print("Deployed lottery!")
   
+  
 def start_lottery():
   account = get_account()
   lottery = Lottery[-1]
   starting_tx = lottery.startLottery({"from": account})
   starting_tx.wait(1)
   print("The lottery is started!")
+  
   
 def enter_lottery():
   account = get_account()
@@ -30,15 +33,18 @@ def enter_lottery():
   tx.wait(1)
   print("You entered the lottery!")
   
+  
 def end_lottery():
   account = get_account()
   lottery = Lottery[-1]
   # fund the contract
-  # then end the lottery
-  tx = lottery.endLottery()
+  # then end the lottery  
+  tx = fund_with_link(lottery.address)
+  tx.wait(1)
+  ending_transaction = lottery.endLottery({"from": account})  
+  ending_transaction.wait(1)
   
   
-
 def main(): 
   deploy_lottery()
   start_lottery()
