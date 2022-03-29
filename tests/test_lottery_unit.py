@@ -5,7 +5,7 @@
 # 1 eth : 10**18 = 0.016 : x -> x = 0.016 * 10^18 = 
 # 0.016 * 10**18 = 16 * 10^15 = 16000000000000000
 
-from scripts.helpful_scripts import LOCAL_BLOCKCHAIN_ENVIRONMENTS, get_account
+from scripts.helpful_scripts import LOCAL_BLOCKCHAIN_ENVIRONMENTS, get_account, fund_with_link
 from brownie import Lottery, accounts, config, network, exceptions
 from web3 import Web3
 from scripts.deploy_lottery import deploy_lottery
@@ -42,3 +42,27 @@ def test_cant_enter_unless_started():
   # Act / Assert
   with pytest.raises(exceptions.VirtualMachineError):
     lottery.enter({"from": get_account(), "value": lottery.getEntranceFee()})
+    
+def test_can_start_and_enter_lottery():
+  # Arrange
+  if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:    
+    pytest.skip("Only for local testing")
+  lottery = deploy_lottery()
+  account = get_account()
+  lottery.startLottery({"from": account})
+  # Act
+  lottery.enter({"from": account, "value": lottery.getEntranceFee()})
+  # Assert
+  assert lottery.players(0) == account
+  
+def test_can_end_lottery():
+  # Arrange
+  if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:    
+    pytest.skip("Only for local testing")
+  lottery = deploy_lottery()
+  account = get_account()
+  lottery.startLottery({"from": account})
+  lottery.enter({"from": account, "value": lottery.getEntranceFee()})
+  fund_with_link(lottery)
+  lottery.endLottery({"from": account})
+  assert lottery.lottery_state() == 2 # CALCULATING_WINNER
