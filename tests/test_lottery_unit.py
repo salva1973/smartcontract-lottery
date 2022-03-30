@@ -5,7 +5,12 @@
 # 1 eth : 10**18 = 0.016 : x -> x = 0.016 * 10^18 = 
 # 0.016 * 10**18 = 16 * 10^15 = 16000000000000000
 
-from scripts.helpful_scripts import LOCAL_BLOCKCHAIN_ENVIRONMENTS, get_account, fund_with_link
+from scripts.helpful_scripts import (
+  LOCAL_BLOCKCHAIN_ENVIRONMENTS, 
+  get_account,
+  fund_with_link,
+  get_contract
+)
 from brownie import Lottery, accounts, config, network, exceptions
 from web3 import Web3
 from scripts.deploy_lottery import deploy_lottery
@@ -66,3 +71,28 @@ def test_can_end_lottery():
   fund_with_link(lottery)
   lottery.endLottery({"from": account})
   assert lottery.lottery_state() == 2 # CALCULATING_WINNER
+  
+def test_can_pick_winner_correctly(): # more an integration test than a unit test
+  # Arrange
+  if network.show_active() not in LOCAL_BLOCKCHAIN_ENVIRONMENTS:    
+    pytest.skip("Only for local testing")
+  lottery = deploy_lottery()
+  account = get_account()
+  lottery.startLottery({"from": account})
+  lottery.enter({"from": account, "value": lottery.getEntranceFee()})
+  lottery.enter({"from": get_account(index=1), "value": lottery.getEntranceFee()})
+  lottery.enter({"from": get_account(index=2), "value": lottery.getEntranceFee()})
+  fund_with_link(lottery)
+  transaction = lottery.endLottery({"from": account})
+  request_id = transaction.events["RequestedRandomness"]["requestId"]
+  STATIC_RNG = 777 
+  get_contract("vrf_coordinator").callBackWithRandomness(
+    request_id, STATIC_RNG, lottery.address, {"from": account}
+  )
+  # 777 % 3 = 0 (account is gonna be the winner)
+  starting_balance_of_account = account.balance()
+  balance_of_lottery = lottery.balance()  
+  assert lottery.recentWinner() == account
+  assert lottery.balance() == 0
+  assert account.balance() == starting_balance_of_account + balance_of_lottery
+  
