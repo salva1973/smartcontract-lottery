@@ -73,7 +73,8 @@ def deploy_mocks(decimals=DECIMALS, initial_value=INITIAL_VALUE):
   VRFCoordinatorMock.deploy(link_token.address, {"from": account})
   print("Deployed!")
   
-def fund_with_link(contract_address, account=None, link_token=None, amount=250000000000000000): # 0.1 Link                                                                           
+# 0.1 Link
+def fund_with_link(contract_address, account=None, link_token=None, amount=250000000000000000):
   account = account if account else get_account()
   link_token = link_token if link_token else get_contract("link_token")
   tx = link_token.transfer(contract_address, amount, {"from": account})
